@@ -8,13 +8,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // 🔥 REPLACE WITH YOUR OWN CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyBKR2unkdTKNus5FiqCmox8KQ29HZeEgP0",
-  authDomain: "hkskalica-fe24b.firebaseapp.com",
-  projectId: "hkskalica-fe24b",
-  storageBucket: "hkskalica-fe24b.firebasestorage.app",
-  messagingSenderId: "1017079759774",
-  appId: "1:1017079759774:web:7cab3626c176aaf8144c8f"
+const firebaseConfig = 
+{apiKey: "AIzaSyBKR2unkdTKNus5FiqCmox8KQ29HZeEgP0",
+ authDomain: "hkskalica-fe24b.firebaseapp.com",
+ projectId: "hkskalica-fe24b",
+ storageBucket: "hkskalica-fe24b.firebasestorage.app",
+ messagingSenderId: "1017079759774",
+ appId: "1:1017079759774:web:7cab3626c176aaf8144c8f"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -82,10 +82,12 @@ function renderTables() {
   skatersBody.innerHTML = "";
   goaliesBody.innerHTML = "";
 
-  players.forEach(p => {
-    if (p.position === "goalie") addRow(p, goaliesBody);
-    else addRow(p, skatersBody);
-  });
+  players
+    .sort((a, b) => a.order - b.order)
+    .forEach(p => {
+      if (p.position === "goalie") addRow(p, goaliesBody);
+      else addRow(p, skatersBody);
+    });
 }
 
 // ================= MOBILE FRIENDLY EDIT =================
@@ -111,7 +113,7 @@ function enableMobileEdit(row, player) {
     };
   });
 
-  // right click or long press = delete
+  // right click / long press = delete
   row.oncontextmenu = async (e) => {
     e.preventDefault();
     if (confirm("Delete this player?")) {
@@ -121,27 +123,31 @@ function enableMobileEdit(row, player) {
   };
 }
 
-// ================= SORT =================
-document.getElementById("sortBtn").onclick = () => {
+// ================= SORTING =================
+async function sortSkatersBy(field) {
 
-  // convert points to numbers just in case
-  players.forEach(p => {
-    p.points = Number(p.points) || 0;
-  });
+  players.forEach(p => p[field] = Number(p[field]) || 0);
 
-  // sort only skaters by points
   const skaters = players
     .filter(p => p.position === "skater")
-    .sort((a, b) => b.points - a.points);
+    .sort((a, b) => b[field] - a[field]);
 
   const goalies = players.filter(p => p.position === "goalie");
 
-  // rebuild players list with sorted skaters + goalies
+  skaters.forEach((p, i) => p.order = i + 1);
+  goalies.forEach((p, i) => p.order = i + 1);
+
+  for (const p of [...skaters, ...goalies]) {
+    await updateDoc(doc(db, "players", p.id), { order: p.order });
+  }
+
   players = [...skaters, ...goalies];
-
   renderTables();
-};
+}
 
+document.getElementById("sortPointsBtn").onclick = () => sortSkatersBy("points");
+document.getElementById("sortGoalsBtn").onclick = () => sortSkatersBy("goals");
+document.getElementById("sortAssistsBtn").onclick = () => sortSkatersBy("assists");
 
 // ================= ADD PLAYER =================
 document.getElementById("addPlayerBtn").onclick = async () => {
@@ -187,4 +193,3 @@ document.getElementById("resetSeasonBtn").onclick = async () => {
 
   loadPlayers();
 };
-
