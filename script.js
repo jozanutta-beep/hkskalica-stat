@@ -123,9 +123,25 @@ function enableMobileEdit(row, player) {
 
 // ================= SORT =================
 document.getElementById("sortBtn").onclick = () => {
-  players.sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  // convert points to numbers just in case
+  players.forEach(p => {
+    p.points = Number(p.points) || 0;
+  });
+
+  // sort only skaters by points
+  const skaters = players
+    .filter(p => p.position === "skater")
+    .sort((a, b) => b.points - a.points);
+
+  const goalies = players.filter(p => p.position === "goalie");
+
+  // rebuild players list with sorted skaters + goalies
+  players = [...skaters, ...goalies];
+
   renderTables();
 };
+
 
 // ================= ADD PLAYER =================
 document.getElementById("addPlayerBtn").onclick = async () => {
@@ -171,3 +187,4 @@ document.getElementById("resetSeasonBtn").onclick = async () => {
 
   loadPlayers();
 };
+
