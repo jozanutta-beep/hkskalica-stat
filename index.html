@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HK Skalica | PCL Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="header">
+  <h1>HK Skalica</h1>
+  <p class="league">PCL</p>
+</header>
+
+<main>
+
+  <h2>Player Stats</h2>
+
+  <!-- LOGIN -->
+  <div id="loginBox">
+    <input type="email" id="email" placeholder="Admin email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="adminPanel" style="display:none;">
+    <p><strong>Admin Mode</strong></p>
+    <button id="addPlayerBtn">Add Player</button>
+    <button id="resetSeasonBtn">New Season Reset</button>
+  </div>
+
+  <button id="sortBtn">Sort Skaters by Points</button>
+
+  <!-- SKATERS -->
+  <h3>Skaters</h3>
+  <table id="skatersTable">
+    <thead>
+      <tr>
+        <th>Order</th><th>Name</th><th>Goals</th><th>Assists</th>
+        <th>Points</th><th>Series</th><th>SOG</th><th>MVPs</th><th>Saves</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- GOALIES -->
+  <h3>Goalies</h3>
+  <table id="goaliesTable">
+    <thead>
+      <tr>
+        <th>Order</th><th>Name</th><th>Goals</th><th>Assists</th>
+        <th>Points</th><th>Series</th><th>SOG</th><th>MVPs</th><th>Saves</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</main>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
