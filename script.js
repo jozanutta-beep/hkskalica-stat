@@ -53,6 +53,10 @@ async function loadPlayers() {
   players = [];
   const snap = await getDocs(collection(db, "players"));
   snap.forEach(d => players.push({ id: d.id, ...d.data() }));
+
+  // IMPORTANT: always sort by order from database
+  players.sort((a, b) => (a.order || 0) - (b.order || 0));
+
   renderTables();
 }
 loadPlayers();
@@ -82,13 +86,12 @@ function renderTables() {
   skatersBody.innerHTML = "";
   goaliesBody.innerHTML = "";
 
-  players
-    .sort((a, b) => a.order - b.order)
-    .forEach(p => {
-      if (p.position === "goalie") addRow(p, goaliesBody);
-      else addRow(p, skatersBody);
-    });
+  players.forEach(p => {
+    if (p.position === "goalie") addRow(p, goaliesBody);
+    else addRow(p, skatersBody);
+  });
 }
+
 
 // ================= MOBILE FRIENDLY EDIT =================
 function enableMobileEdit(row, player) {
@@ -126,6 +129,7 @@ function enableMobileEdit(row, player) {
 // ================= SORTING =================
 async function sortSkatersBy(field) {
 
+  // force numbers
   players.forEach(p => p[field] = Number(p[field]) || 0);
 
   const skaters = players
@@ -134,20 +138,19 @@ async function sortSkatersBy(field) {
 
   const goalies = players.filter(p => p.position === "goalie");
 
+  // update order
   skaters.forEach((p, i) => p.order = i + 1);
   goalies.forEach((p, i) => p.order = i + 1);
 
+  // save all orders
   for (const p of [...skaters, ...goalies]) {
     await updateDoc(doc(db, "players", p.id), { order: p.order });
   }
 
-  players = [...skaters, ...goalies];
-  renderTables();
+  // reload clean from DB
+  loadPlayers();
 }
 
-document.getElementById("sortPointsBtn").onclick = () => sortSkatersBy("points");
-document.getElementById("sortGoalsBtn").onclick = () => sortSkatersBy("goals");
-document.getElementById("sortAssistsBtn").onclick = () => sortSkatersBy("assists");
 
 // ================= ADD PLAYER =================
 document.getElementById("addPlayerBtn").onclick = async () => {
@@ -193,3 +196,4 @@ document.getElementById("resetSeasonBtn").onclick = async () => {
 
   loadPlayers();
 };
+
