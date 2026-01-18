@@ -206,4 +206,3 @@ document.getElementById("resetSeasonBtn").onclick = async () => {
 document.getElementById("sortPointsBtn").onclick = () => sortSkatersBy("points");
 document.getElementById("sortGoalsBtn").onclick = () => sortSkatersBy("goals");
 document.getElementById("sortAssistsBtn").onclick = () => sortSkatersBy("assists");
-};
