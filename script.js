@@ -9,12 +9,7 @@ const app = initializeApp({
   apiKey: "AIzaSyBKR2unkdTKNus5FiqCmox8KQ29HZeEgP0",
   authDomain: "hkskalica-fe24b.firebaseapp.com",
   projectId: "hkskalica-fe24b",
-  storageBucket: "hkskalica-fe24b.firebasestorage.app",
-  messagingSenderId: "1017079759774",
-  appId: "1:1017079759774:web:7cab3626c176aaf8144c8f"
-};
-
-const app = initializeApp(firebaseConfig);
+});
 const db = getFirestore(app);
 
 /******** GLOBALS ********/
@@ -174,4 +169,5 @@ document.getElementById("loginBtn").onclick = () => {
     render();
   }
 };
+
 
