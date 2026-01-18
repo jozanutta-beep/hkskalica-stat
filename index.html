@@ -1,71 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>HK Skalica | PCL Stats</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Hockey Stats</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
 </head>
-
 <body>
 
-<header class="header">
-  <h1>HK Skalica</h1>
-  <p class="league">PCL</p>
-</header>
+<div class="header">
+  <h1>League Stats</h1>
+</div>
 
-<main>
+<div class="controls">
+  <button id="loginBtn">Admin Login</button>
+  <button id="addPlayerBtn" hidden>Add Player</button>
+  <button id="resetSeasonBtn" hidden>New Season Reset</button>
+</div>
 
-  <h2>Player Stats</h2>
+<div class="sortBar">
+  <button id="sortPointsBtn">Points</button>
+  <button id="sortGoalsBtn">Goals</button>
+  <button id="sortAssistsBtn">Assists</button>
+</div>
 
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <input type="email" id="email" placeholder="Admin email">
-    <input type="password" id="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
-  </div>
+<h2>Skaters</h2>
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Name</th>
+  <th>Pos</th>
+  <th>G</th>
+  <th>A</th>
+  <th>P</th>
+  <th>Series</th>
+  <th>SOG</th>
+  <th>MVP</th>
+  <th>🗑</th>
+</tr>
+</thead>
+<tbody id="skatersBody"></tbody>
+</table>
 
-  <!-- ADMIN -->
-  <div id="adminPanel" style="display:none;">
-    <p><strong>Admin Mode</strong></p>
-    <button id="addPlayerBtn">Add Player</button>
-    <button id="resetSeasonBtn">New Season Reset</button>
-  </div>
-
-  <!-- SORT -->
-  <div style="margin-top:10px;">
-    <button id="sortPointsBtn">Sort by Points</button>
-    <button id="sortGoalsBtn">Sort by Goals</button>
-    <button id="sortAssistsBtn">Sort by Assists</button>
-  </div>
-
-  <!-- SKATERS -->
-  <h3>Skaters</h3>
-  <table id="skatersTable">
-    <thead>
-      <tr>
-        <th>Order</th><th>Name</th><th>Goals</th><th>Assists</th>
-        <th>Points</th><th>Series</th><th>SOG</th><th>MVPs</th><th>Saves</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <!-- GOALIES -->
-  <h3>Goalies</h3>
-  <table id="goaliesTable">
-    <thead>
-      <tr>
-        <th>Order</th><th>Name</th><th>Goals</th><th>Assists</th>
-        <th>Points</th><th>Series</th><th>SOG</th><th>MVPs</th><th>Saves</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-</main>
+<h2>Goalies</h2>
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Name</th>
+  <th>Pos</th>
+  <th>Saves</th>
+  <th>🗑</th>
+</tr>
+</thead>
+<tbody id="goaliesBody"></tbody>
+</table>
 
 <script type="module" src="script.js"></script>
 </body>
