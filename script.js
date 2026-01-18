@@ -4,103 +4,90 @@ import {
   addDoc, updateDoc, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/**************** FIREBASE ******************/
-const firebaseConfig = {
+/******** FIREBASE ********/
+const app = initializeApp({
   apiKey: "AIzaSyBKR2unkdTKNus5FiqCmox8KQ29HZeEgP0",
   authDomain: "hkskalica-fe24b.firebaseapp.com",
-  projectId: "hkskalica-fe24b",
-  storageBucket: "hkskalica-fe24b.firebasestorage.app",
-  messagingSenderId: "1017079759774",
-  appId: "1:1017079759774:web:7cab3626c176aaf8144c8f"
-};
-
-const app = initializeApp(firebaseConfig);
+  projectId: "hkskalica-fe24b"
+});
 const db = getFirestore(app);
 
-/**************** GLOBALS ******************/
+/******** GLOBALS ********/
 let players = [];
 let isAdmin = false;
 let currentSort = null;
-let sortDirection = "desc";
+let sortDir = "desc";
 
-const body = document.getElementById("playersBody");
+const skatersBody = document.getElementById("skatersBody");
+const goaliesBody = document.getElementById("goaliesBody");
 
-/**************** LOAD ******************/
+/******** LOAD ********/
 async function loadPlayers() {
   players = [];
   const snap = await getDocs(collection(db, "players"));
   snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-
-  // ALWAYS respect stored order
-  players.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-
   render();
 }
-
 loadPlayers();
 
-/**************** RENDER ******************/
+/******** RENDER ********/
 function render() {
-  body.innerHTML = "";
+  skatersBody.innerHTML = "";
+  goaliesBody.innerHTML = "";
 
-  const max = field =>
-    Math.max(...players.map(p => Number(p[field]) || 0), 0);
+  const skaters = players
+    .filter(p => p.position === "skater")
+    .sort((a,b) => (a.orderSkater ?? 9999) - (b.orderSkater ?? 9999));
 
-  const maxGoals = max("goals");
-  const maxAssists = max("assists");
-  const maxPoints = max("points");
-  const maxMvps = max("mvps");
-  const maxSaves = max("saves");
+  const goalies = players
+    .filter(p => p.position === "goalie")
+    .sort((a,b) => (a.orderGoalie ?? 9999) - (b.orderGoalie ?? 9999));
 
-  players.forEach((p, i) => {
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${p.name}</td>
-      <td>${p.position}</td>
-      <td contenteditable="${isAdmin}">${p.goals ?? 0}</td>
-      <td contenteditable="${isAdmin}">${p.assists ?? 0}</td>
-      <td contenteditable="${isAdmin}">${p.points ?? 0}</td>
-      <td contenteditable="${isAdmin}">${p.series ?? 0}</td>
-      <td contenteditable="${isAdmin}">${p.sog ?? 0}</td>
-      <td contenteditable="${isAdmin}">${p.mvps ?? 0}</td>
-      <td contenteditable="${isAdmin}">${p.saves ?? 0}</td>
-      <td><button onclick="deletePlayer('${p.id}')">❌</button></td>
-    `;
-
-    const c = tr.children;
-
-    if (i === 0) tr.classList.add("top1");
-    if (i === 1) tr.classList.add("top2");
-    if (i === 2) tr.classList.add("top3");
-
-    if (+p.goals === maxGoals) c[3].classList.add("stat-leader");
-    if (+p.assists === maxAssists) c[4].classList.add("stat-leader");
-    if (+p.points === maxPoints) c[5].classList.add("stat-leader");
-    if (+p.mvps === maxMvps) c[8].classList.add("stat-leader");
-    if (+p.saves === maxSaves) c[9].classList.add("stat-leader");
-
-    body.appendChild(tr);
-
-    if (isAdmin) attachEditHandlers(tr, p);
-  });
+  skaters.forEach((p,i)=>renderSkater(p,i));
+  goalies.forEach((p,i)=>renderGoalie(p,i));
 }
 
-/**************** EDIT ******************/
-function attachEditHandlers(tr, p) {
-  const fields = [
-    "goals", "assists", "points",
-    "series", "sog", "mvps", "saves"
-  ];
+function renderSkater(p,i){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${i+1}</td>
+    <td>${p.name}</td>
+    <td contenteditable="${isAdmin}" data-field="goals">${p.goals ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="assists">${p.assists ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="points">${p.points ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="sog">${p.sog ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="mvps">${p.mvps ?? ""}</td>
+    <td><button onclick="deletePlayer('${p.id}')">❌</button></td>
+  `;
+  skatersBody.appendChild(tr);
+  if(isAdmin) attachEditors(tr,p.id);
+}
 
-  [...tr.querySelectorAll("td[contenteditable]")].forEach((cell, i) => {
-    cell.onblur = async () => {
-      const field = fields[i];
-      if (!field) return;
+function renderGoalie(p,i){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${i+1}</td>
+    <td>${p.name}</td>
+    <td contenteditable="${isAdmin}" data-field="assists">${p.assists ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="points">${p.points ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="mvps">${p.mvps ?? ""}</td>
+    <td contenteditable="${isAdmin}" data-field="saves">${p.saves ?? ""}</td>
+    <td><button onclick="deletePlayer('${p.id}')">❌</button></td>
+  `;
+  goaliesBody.appendChild(tr);
+  if(isAdmin) attachEditors(tr,p.id);
+}
 
-      await updateDoc(doc(db, "players", p.id), {
-        [field]: Number(cell.innerText) || 0
+/******** SAFE EDITING ********/
+function attachEditors(tr,id){
+  tr.querySelectorAll("[data-field]").forEach(cell=>{
+    cell.onblur = async ()=>{
+      const field = cell.dataset.field;
+      const value = Number(cell.innerText);
+      if(Number.isNaN(value)) return;
+
+      await updateDoc(doc(db,"players",id),{
+        [field]: value
       });
 
       loadPlayers();
@@ -108,107 +95,69 @@ function attachEditHandlers(tr, p) {
   });
 }
 
-/**************** DELETE ******************/
-window.deletePlayer = async id => {
-  if (!isAdmin) return;
-  if (confirm("Delete player?")) {
-    await deleteDoc(doc(db, "players", id));
-    loadPlayers();
+/******** SORT (ORDER ONLY) ********/
+async function sortSkaters(field){
+  const skaters = players.filter(p=>p.position==="skater");
+
+  skaters.sort((a,b)=>{
+    const av = Number(a[field]) || 0;
+    const bv = Number(b[field]) || 0;
+    return sortDir==="desc" ? bv-av : av-bv;
+  });
+
+  for(let i=0;i<skaters.length;i++){
+    await updateDoc(doc(db,"players",skaters[i].id),{
+      orderSkater: i+1
+    });
   }
-};
 
-/**************** LOGIN ******************/
-document.getElementById("loginBtn").onclick = () => {
-  if (prompt("Admin password:") === "admin123") {
-    isAdmin = true;
-    alert("Admin enabled");
-    document.getElementById("addPlayerBtn").hidden = false;
-    document.getElementById("resetSeasonBtn").hidden = false;
-    render();
-  }
-};
+  loadPlayers();
+}
 
-/**************** ADD ******************/
-document.getElementById("addPlayerBtn").onclick = async () => {
-  const name = prompt("Player name:");
-  const position = prompt("skater or goalie?");
-  if (!name || !position) return;
+function handleSort(field){
+  sortDir =
+    currentSort === field && sortDir === "desc" ? "asc" : "desc";
+  currentSort = field;
+  sortSkaters(field);
+}
 
-  await addDoc(collection(db, "players"), {
+document.getElementById("sortPointsBtn").onclick  = ()=>handleSort("points");
+document.getElementById("sortGoalsBtn").onclick   = ()=>handleSort("goals");
+document.getElementById("sortAssistsBtn").onclick = ()=>handleSort("assists");
+
+/******** ADD ********/
+document.getElementById("addPlayerBtn").onclick = async ()=>{
+  const name = prompt("Name?");
+  const pos = prompt("skater or goalie?");
+  if(!name || !pos) return;
+
+  await addDoc(collection(db,"players"),{
     name,
-    position: position.toLowerCase(),
-    order: players.length + 1,
-    goals: 0,
-    assists: 0,
-    points: 0,
-    series: 0,
-    sog: 0,
-    mvps: 0,
-    saves: 0
+    position: pos,
+    goals:0, assists:0, points:0,
+    series:0, sog:0, mvps:0, saves:0,
+    orderSkater: pos==="skater"? Date.now(): null,
+    orderGoalie: pos==="goalie"? Date.now(): null
   });
 
   loadPlayers();
 };
 
-/**************** RESET ******************/
-document.getElementById("resetSeasonBtn").onclick = async () => {
-  if (!confirm("Reset all stats?")) return;
-
-  for (const p of players) {
-    await updateDoc(doc(db, "players", p.id), {
-      goals: 0,
-      assists: 0,
-      points: 0,
-      series: 0,
-      sog: 0,
-      mvps: 0,
-      saves: 0
-    });
+/******** DELETE ********/
+window.deletePlayer = async id=>{
+  if(!isAdmin) return;
+  if(confirm("Delete?")){
+    await deleteDoc(doc(db,"players",id));
+    loadPlayers();
   }
-
-  loadPlayers();
 };
 
-/**************** SORT ******************/
-function handleSort(field, btnId) {
-  sortDirection =
-    currentSort === field && sortDirection === "desc" ? "asc" : "desc";
-  currentSort = field;
-
-  document.querySelectorAll(".sortBar button")
-    .forEach(b => b.classList.remove("active"));
-  document.getElementById(btnId).classList.add("active");
-
-  sortAndPersist(field);
-}
-
-async function sortAndPersist(field) {
-  players.forEach(p => p[field] = Number(p[field]) || 0);
-
-  players.sort((a, b) =>
-    sortDirection === "desc"
-      ? b[field] - a[field]
-      : a[field] - b[field]
-  );
-
-  // assign new order
-  for (let i = 0; i < players.length; i++) {
-    players[i].order = i + 1;
+/******** LOGIN ********/
+document.getElementById("loginBtn").onclick = ()=>{
+  if(prompt("Admin password")==="admin123"){
+    isAdmin = true;
+    document.getElementById("addPlayerBtn").hidden=false;
+    document.getElementById("resetSeasonBtn").hidden=false;
+    render();
   }
-
-  render();
-
-  // persist order to Firestore
-  for (const p of players) {
-    await updateDoc(doc(db, "players", p.id), {
-      order: p.order
-    });
-  }
-}
-
-document.getElementById("sortPointsBtn").onclick =
-  () => handleSort("points", "sortPointsBtn");
-document.getElementById("sortGoalsBtn").onclick =
-  () => handleSort("goals", "sortGoalsBtn");
-document.getElementById("sortAssistsBtn").onclick =
-  () => handleSort("assists", "sortAssistsBtn");
+};
