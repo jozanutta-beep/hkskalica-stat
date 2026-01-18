@@ -1,208 +1,196 @@
-// ================= FIREBASE =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc
+import { 
+  getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import {
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 🔥 REPLACE WITH YOUR OWN CONFIG
-const firebaseConfig = 
-{apiKey: "AIzaSyBKR2unkdTKNus5FiqCmox8KQ29HZeEgP0",
- authDomain: "hkskalica-fe24b.firebaseapp.com",
- projectId: "hkskalica-fe24b",
- storageBucket: "hkskalica-fe24b.firebasestorage.app",
- messagingSenderId: "1017079759774",
- appId: "1:1017079759774:web:7cab3626c176aaf8144c8f"
+/**************** FIREBASE CONFIG ******************/
+const firebaseConfig = {
+  apiKey: "AIzaSyBKR2unkdTKNus5FiqCmox8KQ29HZeEgP0",
+  authDomain: "hkskalica-fe24b.firebaseapp.com",
+  projectId: "hkskalica-fe24b",
+  storageBucket: "hkskalica-fe24b.firebasestorage.app",
+  messagingSenderId: "1017079759774",
+  appId: "1:1017079759774:web:7cab3626c176aaf8144c8f"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-// ================= DOM =================
-const skatersBody = document.querySelector("#skatersTable tbody");
-const goaliesBody = document.querySelector("#goaliesTable tbody");
-const loginBox = document.getElementById("loginBox");
-const adminPanel = document.getElementById("adminPanel");
-
-let isAdmin = false;
+/**************** GLOBALS ******************/
 let players = [];
+let isAdmin = false;
+let currentSort = null;
+let sortDirection = "desc";
 
-// ================= AUTH =================
-document.getElementById("loginBtn").onclick = () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+const skatersBody = document.getElementById("skatersBody");
+const goaliesBody = document.getElementById("goaliesBody");
 
-  signInWithEmailAndPassword(auth, email, password)
-    .catch(err => alert(err.message));
-};
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    isAdmin = true;
-    loginBox.style.display = "none";
-    adminPanel.style.display = "block";
-    renderTables();
-  }
-});
-
-// ================= LOAD DATA =================
+/**************** LOAD PLAYERS ******************/
 async function loadPlayers() {
   players = [];
   const snap = await getDocs(collection(db, "players"));
   snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-
-  // IMPORTANT: always sort by order from database
-  players.sort((a, b) => (a.order || 0) - (b.order || 0));
-
+  players.sort((a,b) => (a.order || 0) - (b.order || 0));
   renderTables();
 }
+
 loadPlayers();
 
-// ================= RENDER =================
-function addRow(player, tbody) {
-  const row = document.createElement("tr");
-
-  row.innerHTML = `
-    <td>${player.order}</td>
-    <td>${player.name}</td>
-    <td>${player.goals}</td>
-    <td>${player.assists}</td>
-    <td>${player.points}</td>
-    <td>${player.series}</td>
-    <td>${player.sog}</td>
-    <td>${player.mvps}</td>
-    <td>${player.saves}</td>
-  `;
-
-  if (isAdmin) enableMobileEdit(row, player);
-
-  tbody.appendChild(row);
-}
-
+/**************** RENDER TABLES ******************/
 function renderTables() {
   skatersBody.innerHTML = "";
   goaliesBody.innerHTML = "";
 
-  players.forEach(p => {
-    if (p.position === "goalie") addRow(p, goaliesBody);
-    else addRow(p, skatersBody);
-  });
-}
-
-
-// ================= MOBILE FRIENDLY EDIT =================
-function enableMobileEdit(row, player) {
-  const keys = ["order","name","goals","assists","points","series","sog","mvps","saves"];
-
-  row.querySelectorAll("td").forEach((cell, i) => {
-
-    cell.style.background = "#fff7cc";
-
-    cell.onclick = async () => {
-      if (keys[i] === "name") return;
-
-      const val = prompt(`Edit ${keys[i]}`, player[keys[i]]);
-      if (val === null) return;
-
-      let v = val;
-      if (!isNaN(v)) v = Number(v);
-
-      player[keys[i]] = v;
-      await updateDoc(doc(db, "players", player.id), player);
-      loadPlayers();
-    };
-  });
-
-  // right click / long press = delete
-  row.oncontextmenu = async (e) => {
-    e.preventDefault();
-    if (confirm("Delete this player?")) {
-      await deleteDoc(doc(db, "players", player.id));
-      loadPlayers();
-    }
-  };
-}
-
-// ================= SORTING =================
-async function sortSkatersBy(field) {
-
-  // normalize numeric fields
-  players = players.map(p => ({
-    ...p,
-    [field]: Number(p[field]) || 0
-  }));
-
-  // separate groups
   const skaters = players.filter(p => p.position === "skater");
   const goalies = players.filter(p => p.position === "goalie");
 
-  // sort skaters descending
-  skaters.sort((a, b) => b[field] - a[field]);
+  const maxGoals   = Math.max(...skaters.map(p => Number(p.goals)||0),0);
+  const maxAssists = Math.max(...skaters.map(p => Number(p.assists)||0),0);
+  const maxPoints  = Math.max(...skaters.map(p => Number(p.points)||0),0);
+  const maxSog     = Math.max(...skaters.map(p => Number(p.sog)||0),0);
+  const maxMvps    = Math.max(...skaters.map(p => Number(p.mvps)||0),0);
+  const maxSaves   = Math.max(...goalies.map(p => Number(p.saves)||0),0);
 
-  // reassign order values
-  skaters.forEach((p, i) => p.order = i + 1);
-  goalies.forEach((p, i) => p.order = i + 1);
+  skaters.forEach((p,i) => {
+    addRow(p, skatersBody);
+    const row = skatersBody.lastElementChild;
+    const c = row.children;
 
-  // rebuild master list (IMPORTANT)
-  players = [...skaters, ...goalies];
+    if(i===0) row.classList.add("top1");
+    if(i===1) row.classList.add("top2");
+    if(i===2) row.classList.add("top3");
 
-  // update UI immediately
-  renderTables();
+    if(Number(p.goals)   === maxGoals)   c[3].classList.add("stat-leader");
+    if(Number(p.assists)=== maxAssists) c[4].classList.add("stat-leader");
+    if(Number(p.points) === maxPoints)  c[5].classList.add("stat-leader");
+    if(Number(p.sog)    === maxSog)     c[7].classList.add("stat-leader");
+    if(Number(p.mvps)   === maxMvps)    c[8].classList.add("stat-leader");
+  });
 
-  // sync with Firebase (background)
-  for (const p of players) {
-    await updateDoc(doc(db, "players", p.id), { order: p.order });
+  goalies.forEach(p => {
+    addRow(p, goaliesBody);
+    const row = goaliesBody.lastElementChild;
+    if(Number(p.saves) === maxSaves) row.children[3].classList.add("stat-leader");
+  });
+}
+
+/**************** ADD ROW ******************/
+function addRow(p, tbody) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${p.order}</td>
+    <td>${p.name}</td>
+    <td>${p.position}</td>
+    <td contenteditable="${isAdmin}">${p.goals ?? ""}</td>
+    <td contenteditable="${isAdmin}">${p.assists ?? ""}</td>
+    <td contenteditable="${isAdmin}">${p.points ?? ""}</td>
+    <td contenteditable="${isAdmin}">${p.series ?? ""}</td>
+    <td contenteditable="${isAdmin}">${p.sog ?? ""}</td>
+    <td contenteditable="${isAdmin}">${p.mvps ?? ""}</td>
+    <td><button onclick="deletePlayer('${p.id}')">❌</button></td>
+  `;
+  tbody.appendChild(tr);
+
+  if(isAdmin){
+    [...tr.querySelectorAll("td[contenteditable]")].forEach((cell,idx)=>{
+      cell.onblur = async () => {
+        const fields = ["goals","assists","points","series","sog","mvps"];
+        const field = fields[idx-3];
+        await updateDoc(doc(db,"players",p.id),{
+          [field]: Number(cell.innerText)||0
+        });
+        loadPlayers();
+      };
+    });
   }
 }
 
-// ================= ADD PLAYER =================
+/**************** DELETE ******************/
+window.deletePlayer = async (id) => {
+  if(!isAdmin) return;
+  if(confirm("Delete player?")){
+    await deleteDoc(doc(db,"players",id));
+    loadPlayers();
+  }
+};
+
+/**************** LOGIN ******************/
+document.getElementById("loginBtn").onclick = () => {
+  const pw = prompt("Admin password:");
+  if(pw === "admin123"){
+    isAdmin = true;
+    alert("Admin enabled");
+    document.getElementById("addPlayerBtn").hidden = false;
+    document.getElementById("resetSeasonBtn").hidden = false;
+    renderTables();
+  } else alert("Wrong password");
+};
+
+/**************** ADD PLAYER ******************/
 document.getElementById("addPlayerBtn").onclick = async () => {
   const name = prompt("Player name:");
-  const pos = prompt("Position: skater or goalie");
+  const pos = prompt("skater or goalie?");
+  if(!name || !pos) return;
 
-  if (!name || !pos) return;
-
-  const newPlayer = {
+  await addDoc(collection(db,"players"),{
     order: players.length + 1,
     name,
     position: pos.toLowerCase(),
-    goals: 0,
-    assists: 0,
-    points: 0,
-    series: 0,
-    sog: 0,
-    mvps: 0,
-    saves: pos.toLowerCase() === "goalie" ? 0 : "—"
-  };
-
-  await addDoc(collection(db, "players"), newPlayer);
+    goals:0,assists:0,points:0,series:0,sog:0,mvps:0,
+    saves: pos==="goalie"?0:"—"
+  });
   loadPlayers();
 };
 
-// ================= NEW SEASON RESET =================
+/**************** RESET ******************/
 document.getElementById("resetSeasonBtn").onclick = async () => {
-  if (!confirm("Reset ALL stats for new season?")) return;
+  if(!confirm("Reset all stats?")) return;
+  for(const p of players){
+    await updateDoc(doc(db,"players",p.id),{
+      goals:0,assists:0,points:0,series:0,sog:0,mvps:0,
+      saves: p.position==="goalie"?0:"—"
+    });
+  }
+  loadPlayers();
+};
 
-  for (const p of players) {
-    const reset = {
-      ...p,
-      goals: 0,
-      assists: 0,
-      points: 0,
-      series: 0,
-      sog: 0,
-      mvps: 0,
-      saves: p.position === "goalie" ? 0 : "—"
-    };
-    await updateDoc(doc(db, "players", p.id), reset);
+/**************** SORT ******************/
+function handleSort(field, btnId){
+  if(currentSort === field){
+    sortDirection = sortDirection === "desc" ? "asc" : "desc";
+  } else {
+    currentSort = field;
+    sortDirection = "desc";
   }
 
-  loadPlayers();
-};
-// ================= SORT BUTTONS =================
-document.getElementById("sortPointsBtn").onclick = () => sortSkatersBy("points");
-document.getElementById("sortGoalsBtn").onclick = () => sortSkatersBy("goals");
-document.getElementById("sortAssistsBtn").onclick = () => sortSkatersBy("assists");
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+  document.getElementById(btnId).classList.add("active");
+
+  sortSkatersBy(field, sortDirection);
+}
+
+document.getElementById("sortPointsBtn").onclick = () => handleSort("points","sortPointsBtn");
+document.getElementById("sortGoalsBtn").onclick  = () => handleSort("goals","sortGoalsBtn");
+document.getElementById("sortAssistsBtn").onclick= () => handleSort("assists","sortAssistsBtn");
+
+async function sortSkatersBy(field, direction){
+
+  players.forEach(p=>p[field]=Number(p[field])||0);
+
+  const skaters = players.filter(p=>p.position==="skater");
+  const goalies = players.filter(p=>p.position==="goalie");
+
+  skaters.sort((a,b)=>
+    direction==="desc" ? b[field]-a[field] : a[field]-b[field]
+  );
+
+  skaters.forEach((p,i)=>p.order=i+1);
+  goalies.forEach((p,i)=>p.order=i+1);
+
+  players=[...skaters,...goalies];
+  renderTables();
+
+  for(const p of players){
+    await updateDoc(doc(db,"players",p.id),{order:p.order});
+  }
+}
