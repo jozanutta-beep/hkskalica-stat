@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, addDoc,
-  updateDoc, deleteDoc, doc
+  getFirestore, collection, getDocs,
+  addDoc, updateDoc, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /**************** FIREBASE ******************/
@@ -23,76 +23,40 @@ let isAdmin = false;
 let currentSort = null;
 let sortDirection = "desc";
 
-const skatersBody = document.getElementById("skatersBody");
-const goaliesBody = document.getElementById("goaliesBody");
+const body = document.getElementById("playersBody");
 
 /**************** LOAD ******************/
 async function loadPlayers() {
   players = [];
   const snap = await getDocs(collection(db, "players"));
   snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-  renderTables();
+
+  // ALWAYS respect stored order
+  players.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+  render();
 }
 
 loadPlayers();
 
 /**************** RENDER ******************/
-function renderTables() {
-  skatersBody.innerHTML = "";
-  goaliesBody.innerHTML = "";
-
-  const skaters = players.filter(p => p.position === "skater");
-  const goalies = players.filter(p => p.position === "goalie");
+function render() {
+  body.innerHTML = "";
 
   const max = field =>
-    Math.max(...skaters.map(p => Number(p[field]) || 0), 0);
+    Math.max(...players.map(p => Number(p[field]) || 0), 0);
 
   const maxGoals = max("goals");
   const maxAssists = max("assists");
   const maxPoints = max("points");
-  const maxSog = max("sog");
   const maxMvps = max("mvps");
-  const maxSaves = Math.max(...goalies.map(p => Number(p.saves) || 0), 0);
+  const maxSaves = max("saves");
 
-  skaters.forEach((p, i) => {
-    addRow({ ...p, order: i + 1 }, skatersBody);
+  players.forEach((p, i) => {
+    const tr = document.createElement("tr");
 
-    const row = skatersBody.lastElementChild;
-    const c = row.children;
-
-    if (i === 0) row.classList.add("top1");
-    if (i === 1) row.classList.add("top2");
-    if (i === 2) row.classList.add("top3");
-
-    if (+p.goals === maxGoals) c[3].classList.add("stat-leader");
-    if (+p.assists === maxAssists) c[4].classList.add("stat-leader");
-    if (+p.points === maxPoints) c[5].classList.add("stat-leader");
-    if (+p.sog === maxSog) c[7].classList.add("stat-leader");
-    if (+p.mvps === maxMvps) c[8].classList.add("stat-leader");
-  });
-
-  goalies.forEach((p, i) => {
-    addRow({ ...p, order: i + 1 }, goaliesBody);
-    const row = goaliesBody.lastElementChild;
-    if (+p.saves === maxSaves) row.children[3].classList.add("stat-leader");
-  });
-}
-
-/**************** ROW ******************/
-function addRow(p, tbody) {
-  const tr = document.createElement("tr");
-
-  if (p.position === "goalie") {
     tr.innerHTML = `
-      <td>${p.order}</td>
-      <td>${p.name}</td>
-      <td>${p.position}</td>
-      <td contenteditable="${isAdmin}">${p.saves ?? 0}</td>
-      <td><button onclick="deletePlayer('${p.id}')">❌</button></td>
-    `;
-  } else {
-    tr.innerHTML = `
-      <td>${p.order}</td>
+      <td>${i + 1}</td>
       <td>${p.name}</td>
       <td>${p.position}</td>
       <td contenteditable="${isAdmin}">${p.goals ?? 0}</td>
@@ -101,30 +65,47 @@ function addRow(p, tbody) {
       <td contenteditable="${isAdmin}">${p.series ?? 0}</td>
       <td contenteditable="${isAdmin}">${p.sog ?? 0}</td>
       <td contenteditable="${isAdmin}">${p.mvps ?? 0}</td>
+      <td contenteditable="${isAdmin}">${p.saves ?? 0}</td>
       <td><button onclick="deletePlayer('${p.id}')">❌</button></td>
     `;
-  }
 
-  tbody.appendChild(tr);
+    const c = tr.children;
 
-  if (isAdmin) {
-    [...tr.querySelectorAll("td[contenteditable]")].forEach((cell, idx) => {
-      cell.onblur = async () => {
-        const fields = p.position === "goalie"
-          ? ["saves"]
-          : ["goals", "assists", "points", "series", "sog", "mvps"];
+    if (i === 0) tr.classList.add("top1");
+    if (i === 1) tr.classList.add("top2");
+    if (i === 2) tr.classList.add("top3");
 
-        const field = fields[idx - 3];
-        if (!field) return;
+    if (+p.goals === maxGoals) c[3].classList.add("stat-leader");
+    if (+p.assists === maxAssists) c[4].classList.add("stat-leader");
+    if (+p.points === maxPoints) c[5].classList.add("stat-leader");
+    if (+p.mvps === maxMvps) c[8].classList.add("stat-leader");
+    if (+p.saves === maxSaves) c[9].classList.add("stat-leader");
 
-        await updateDoc(doc(db, "players", p.id), {
-          [field]: Number(cell.innerText) || 0
-        });
+    body.appendChild(tr);
 
-        loadPlayers();
-      };
-    });
-  }
+    if (isAdmin) attachEditHandlers(tr, p);
+  });
+}
+
+/**************** EDIT ******************/
+function attachEditHandlers(tr, p) {
+  const fields = [
+    "goals", "assists", "points",
+    "series", "sog", "mvps", "saves"
+  ];
+
+  [...tr.querySelectorAll("td[contenteditable]")].forEach((cell, i) => {
+    cell.onblur = async () => {
+      const field = fields[i];
+      if (!field) return;
+
+      await updateDoc(doc(db, "players", p.id), {
+        [field]: Number(cell.innerText) || 0
+      });
+
+      loadPlayers();
+    };
+  });
 }
 
 /**************** DELETE ******************/
@@ -143,22 +124,27 @@ document.getElementById("loginBtn").onclick = () => {
     alert("Admin enabled");
     document.getElementById("addPlayerBtn").hidden = false;
     document.getElementById("resetSeasonBtn").hidden = false;
-    renderTables();
+    render();
   }
 };
 
 /**************** ADD ******************/
 document.getElementById("addPlayerBtn").onclick = async () => {
   const name = prompt("Player name:");
-  const pos = prompt("skater or goalie?");
-  if (!name || !pos) return;
+  const position = prompt("skater or goalie?");
+  if (!name || !position) return;
 
   await addDoc(collection(db, "players"), {
     name,
-    position: pos.toLowerCase(),
-    goals: 0, assists: 0, points: 0,
-    series: 0, sog: 0, mvps: 0,
-    saves: pos === "goalie" ? 0 : null
+    position: position.toLowerCase(),
+    order: players.length + 1,
+    goals: 0,
+    assists: 0,
+    points: 0,
+    series: 0,
+    sog: 0,
+    mvps: 0,
+    saves: 0
   });
 
   loadPlayers();
@@ -167,13 +153,19 @@ document.getElementById("addPlayerBtn").onclick = async () => {
 /**************** RESET ******************/
 document.getElementById("resetSeasonBtn").onclick = async () => {
   if (!confirm("Reset all stats?")) return;
+
   for (const p of players) {
     await updateDoc(doc(db, "players", p.id), {
-      goals: 0, assists: 0, points: 0,
-      series: 0, sog: 0, mvps: 0,
-      saves: p.position === "goalie" ? 0 : null
+      goals: 0,
+      assists: 0,
+      points: 0,
+      series: 0,
+      sog: 0,
+      mvps: 0,
+      saves: 0
     });
   }
+
   loadPlayers();
 };
 
@@ -187,24 +179,36 @@ function handleSort(field, btnId) {
     .forEach(b => b.classList.remove("active"));
   document.getElementById(btnId).classList.add("active");
 
-  sortSkaters(field);
+  sortAndPersist(field);
 }
 
-function sortSkaters(field) {
-  const skaters = players
-    .filter(p => p.position === "skater")
-    .map(p => ({ ...p, [field]: Number(p[field]) || 0 }));
+async function sortAndPersist(field) {
+  players.forEach(p => p[field] = Number(p[field]) || 0);
 
-  const goalies = players.filter(p => p.position === "goalie");
-
-  skaters.sort((a, b) =>
-    sortDirection === "desc" ? b[field] - a[field] : a[field] - b[field]
+  players.sort((a, b) =>
+    sortDirection === "desc"
+      ? b[field] - a[field]
+      : a[field] - b[field]
   );
 
-  players = [...skaters, ...goalies];
-  renderTables();
+  // assign new order
+  for (let i = 0; i < players.length; i++) {
+    players[i].order = i + 1;
+  }
+
+  render();
+
+  // persist order to Firestore
+  for (const p of players) {
+    await updateDoc(doc(db, "players", p.id), {
+      order: p.order
+    });
+  }
 }
 
-document.getElementById("sortPointsBtn").onclick = () => handleSort("points", "sortPointsBtn");
-document.getElementById("sortGoalsBtn").onclick = () => handleSort("goals", "sortGoalsBtn");
-document.getElementById("sortAssistsBtn").onclick = () => handleSort("assists", "sortAssistsBtn");
+document.getElementById("sortPointsBtn").onclick =
+  () => handleSort("points", "sortPointsBtn");
+document.getElementById("sortGoalsBtn").onclick =
+  () => handleSort("goals", "sortGoalsBtn");
+document.getElementById("sortAssistsBtn").onclick =
+  () => handleSort("assists", "sortAssistsBtn");
