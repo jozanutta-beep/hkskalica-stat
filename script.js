@@ -129,28 +129,34 @@ function enableMobileEdit(row, player) {
 // ================= SORTING =================
 async function sortSkatersBy(field) {
 
-  // force numbers
-  players.forEach(p => p[field] = Number(p[field]) || 0);
+  // normalize numeric fields
+  players = players.map(p => ({
+    ...p,
+    [field]: Number(p[field]) || 0
+  }));
 
-  const skaters = players
-    .filter(p => p.position === "skater")
-    .sort((a, b) => b[field] - a[field]);
-
+  // separate groups
+  const skaters = players.filter(p => p.position === "skater");
   const goalies = players.filter(p => p.position === "goalie");
 
-  // update order
+  // sort skaters descending
+  skaters.sort((a, b) => b[field] - a[field]);
+
+  // reassign order values
   skaters.forEach((p, i) => p.order = i + 1);
   goalies.forEach((p, i) => p.order = i + 1);
 
-  // save all orders
-  for (const p of [...skaters, ...goalies]) {
+  // rebuild master list (IMPORTANT)
+  players = [...skaters, ...goalies];
+
+  // update UI immediately
+  renderTables();
+
+  // sync with Firebase (background)
+  for (const p of players) {
     await updateDoc(doc(db, "players", p.id), { order: p.order });
   }
-
-  // reload clean from DB
-  loadPlayers();
 }
-
 
 // ================= ADD PLAYER =================
 document.getElementById("addPlayerBtn").onclick = async () => {
@@ -196,4 +202,5 @@ document.getElementById("resetSeasonBtn").onclick = async () => {
 
   loadPlayers();
 };
+
 
