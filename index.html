@@ -2,59 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Hockey Stats</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HK Skalica | PCL Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-<div class="header">
-  <h1>League Stats</h1>
-</div>
+<header class="header">
+  <h1>HK Skalica</h1>
+  <p class="league">PCL</p>
+</header>
 
-<div class="controls">
-  <button id="loginBtn">Admin Login</button>
-  <button id="addPlayerBtn" hidden>Add Player</button>
-</div>
+<main>
 
-<div class="sortBar">
-  <button id="sortPointsBtn">Sort Skaters: Points</button>
-  <button id="sortGoalsBtn">Sort Skaters: Goals</button>
-  <button id="sortAssistsBtn">Sort Skaters: Assists</button>
-</div>
+  <h2>Player Stats</h2>
 
-<h2>Skaters</h2>
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Name</th>
-      <th>G</th>
-      <th>A</th>
-      <th>P</th>
-      <th>SOG</th>
-      <th>MVP</th>
-      <th>🗑</th>
-    </tr>
-  </thead>
-  <tbody id="skatersBody"></tbody>
-</table>
+  <!-- LOGIN -->
+  <div id="loginBox">
+    <input type="email" id="email" placeholder="Admin email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+  </div>
 
-<h2>Goalies</h2>
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Name</th>
-      <th>A</th>
-      <th>P</th>
-      <th>MVP</th>
-      <th>Saves</th>
-      <th>🗑</th>
-    </tr>
-  </thead>
-  <tbody id="goaliesBody"></tbody>
-</table>
+  <!-- ADMIN -->
+  <div id="adminPanel" style="display:none;">
+    <p><strong>Admin Mode</strong></p>
+    <button id="addPlayerBtn">Add Player</button>
+    <button id="resetSeasonBtn">New Season Reset</button>
+  </div>
+
+  <!-- SORT -->
+  <div style="margin-top:10px;">
+    <button id="sortPointsBtn">Sort by Points</button>
+    <button id="sortGoalsBtn">Sort by Goals</button>
+    <button id="sortAssistsBtn">Sort by Assists</button>
+  </div>
+
+  <!-- SKATERS -->
+  <h3>Skaters</h3>
+  <table id="skatersTable">
+    <thead>
+      <tr>
+        <th>Order</th><th>Name</th><th>Goals</th><th>Assists</th>
+        <th>Points</th><th>Series</th><th>SOG</th><th>MVPs</th><th>Saves</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- GOALIES -->
+  <h3>Goalies</h3>
+  <table id="goaliesTable">
+    <thead>
+      <tr>
+        <th>Order</th><th>Name</th><th>Goals</th><th>Assists</th>
+        <th>Points</th><th>Series</th><th>SOG</th><th>MVPs</th><th>Saves</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</main>
 
 <script type="module" src="script.js"></script>
 </body>
