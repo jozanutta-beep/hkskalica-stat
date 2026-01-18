@@ -25,7 +25,14 @@ const goaliesBody = document.getElementById("goaliesBody");
 async function loadPlayers() {
   players = [];
   const snap = await getDocs(collection(db, "players"));
-  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
+  snap.forEach(d => {
+  const data = d.data();
+  players.push({
+    id: d.id,
+    ..data,
+    position: (data.position || "").toLowerCase()
+  });
+});
   render();
 }
 loadPlayers();
@@ -163,11 +170,12 @@ window.deletePlayer = async id => {
 
 /******** LOGIN ********/
 document.getElementById("loginBtn").onclick = () => {
-  if (prompt("Admin password") === "admin123") {
+  if (prompt("Admin password") === "skalica123") {
     isAdmin = true;
     document.getElementById("addPlayerBtn").hidden = false;
     render();
   }
 };
+
 
 
