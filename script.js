@@ -81,20 +81,29 @@ function renderGoalie(p,i){
 /******** SAFE EDITING ********/
 function attachEditors(tr,id){
   tr.querySelectorAll("[data-field]").forEach(cell=>{
-    cell.onblur = async ()=>{
-      const field = cell.dataset.field;
-      const value = Number(cell.innerText);
-      if(Number.isNaN(value)) return;
+    cell.dataset.original = cell.innerText.trim();
 
-      await updateDoc(doc(db,"players",id),{
-        [field]: value
-      });
+cell.onblur = async () => {
+  const field = cell.dataset.field;
+  const newValue = cell.innerText.trim();
+  const oldValue = cell.dataset.original;
 
-      loadPlayers();
-    };
+  // ✅ NOTHING CHANGED → DO NOTHING
+  if (newValue === oldValue) return;
+
+  // ✅ EMPTY → DO NOTHING
+  if (newValue === "") return;
+
+  const num = Number(newValue);
+  if (Number.isNaN(num)) return;
+
+  await updateDoc(doc(db, "players", id), {
+    [field]: num
   });
-}
 
+  cell.dataset.original = newValue;
+};
+    
 /******** SORT (ORDER ONLY) ********/
 async function sortSkaters(field){
   const skaters = players.filter(p=>p.position==="skater");
@@ -161,3 +170,4 @@ document.getElementById("loginBtn").onclick = ()=>{
     render();
   }
 };
+
