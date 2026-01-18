@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  font-family: 'Montserrat', Arial, sans-serif;
+  font-family: Arial, sans-serif;
   background: #fff;
   color: #000;
 }
@@ -9,20 +9,6 @@ body {
   background: #1c1c1c;
   color: white;
   padding: 1rem 2rem;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 2.5rem;
-}
-
-.league {
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-main {
-  padding: 2rem;
 }
 
 .controls, .sortBar {
@@ -38,10 +24,6 @@ button {
   cursor: pointer;
   background: #000;
   color: #fff;
-}
-
-button:hover {
-  opacity: 0.85;
 }
 
 button.active {
@@ -69,19 +51,12 @@ tr:nth-child(even) {
   background: #f6f6f6;
 }
 
-/* TOP PLAYERS */
 .top1 { background: #ffd700 !important; }
 .top2 { background: #e0e0e0 !important; }
 .top3 { background: #cd7f32 !important; }
 
-/* STAT LEADER */
 .stat-leader {
   background: #c8f7c5 !important;
   font-weight: bold;
   border: 2px solid #2ecc71;
-}
-
-/* MOBILE TAP */
-td:active {
-  background: #d0ebff !important;
 }
